@@ -5,26 +5,22 @@ import { OAuth2Client, TokenPayload } from 'google-auth-library';
 
 @Injectable()
 export class VerifyFacebookTokeniddleware implements NestMiddleware {
-  use(req: Request, res: Response, next: NextFunction) {
+  async use(req: Request, res: Response, next: NextFunction) {
     const accessToken: string = req.body.accessToken;
     let authenticated: Boolean = false;
     if (accessToken) {
-      axios
-        .post(`${process.env.FACEBOOK_BASE_URL}/me?access_token=${accessToken}`)
-        .then((res: AxiosResponse) => {
-          if (res.data.success === true) {
-            authenticated = true;
-          }
-        })
-        .catch((error: Error) => {
-          console.log(error);
-          console.log(process.env)
-          res.json({
-            message: 'Authentication Failed',
-          });
-        });
-      authenticated = true;
-      next();
+      try {
+        const verifyToken = await axios.post(
+          `${process.env.FACEBOOK_BASE_URL}/me?access_token=${accessToken}`,
+        );
+        if (verifyToken.data.success === true) {
+          authenticated = true;
+        }
+
+        next();
+      } catch (error) {
+        console.log(error);
+      }
     } else {
       return res.status(400).json({ message: 'something wrong happened' });
     }
@@ -45,8 +41,7 @@ export class VerifyGoogleToken implements NestMiddleware {
       });
       const payload = ticket.getPayload() as TokenPayload;
       const userId = payload['sub'];
-      console.log(payload);
-      console.log(ticket);
+
       next();
     } catch (error) {
       console.log(error);
